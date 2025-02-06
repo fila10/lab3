@@ -144,6 +144,15 @@ map.addLayer({
     }
 });
 
+map.on('click', 'metrotransit-layer', function (e) {
+    let coordinates = e.features[0].geometry.coordinates.slice();
+    let objectID = e.features[0].properties.NAME;
+    new mapboxgl.Popup()
+        .setLngLat(coordinates)
+        .setHTML(`${objectID}`)
+        .addTo(map);
+});
+
 
 map.addSource('kingcounty', {
     type: 'geojson',
