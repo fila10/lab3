@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Earthquake List</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.5.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.5.0/mapbox-gl.js"></script>
+    <style>
+        /* Reset default margin and padding */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Container that holds map and side panel */
+        #container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Map container: takes up all remaining space */
+        #map {
+            flex-grow: 1;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #side-panel {
+            position: absolute;
+            top: 0;
+            right: 0px;
+            width: 300px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(5px);
+            transition: transform 0.3s ease;
+            z-index: 2;
+            overflow-y: scroll
+        }
+
+        #side-panel:hover {
+            transform: translateX(5px);
+        }
+
+        #side-panel h2 {
+            margin: 0;
+            font-size: 18px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        button {
+            margin-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 5px;
+            text-align: center;
+        }
+
+        th {
+            background: #f5f5f5;
+        }
+        @media (max-width: 1024px) {
+    #container {
+        flex-direction: column;
+    }
+
+    #side-panel {
+        display: none;
+    }
+}
+
+    </style>
+</head>
+<body>
+
+  <main id="container">
+    <div id="side-panel">
+
+        <h2>King County Metro Translit list</h2>
+        <button>Sort by ID</button>
+
+        <table>
+            <tr>
+                <th>Name</th>
+                <th>ID</th>
+                <th>Address</th>
+            </tr>
+        </table>
+
+    </div>
+    <div id="map"></div>
+</main>
+<script>
+
+  mapboxgl.accessToken = 'pk.eyJ1IjoiZjEwIiwiYSI6ImNtNnNyMHZwYjBhZWgybnB3NHpxaTByeHUifQ.WzcIIu3lOYN82hJ7-QQGvQ';
+
+  let map = new mapboxgl.Map({
+    container: 'map', // container ID
+    style: 'mapbox://styles/mapbox/dark-v11', // style URL
+    zoom: 8, // Adjust zoom for King County view
+    center: [-122.2, 47.5] // Center on King County, WA
+});
+
+  async function geojsonFetch() {
+    let response, metrotransit, kingcounty, table;
+    response = await fetch('assets/metrotransit.geojson');
+    metrotransit = await response.json();
+    response = await fetch('assets/kingcounty.geojson');
+    kingcounty = await response.json();
+    table = document.getElementsByTagName("table")[0];
+
+    // Load data to the map as new layers and table on the side
+    map.on('load', function loadingData() {
+
+map.addSource('metrotransit', {
+    type: 'geojson',
+    data: metrotransit
+});
+
+map.addLayer({
+    'id': 'metrotransit-layer',
+    'type': 'circle',
+    'source': 'metrotransit',
+    'paint': {
+        'circle-radius': 10,
+        'circle-stroke-width': 2,
+        'circle-color': 'red',
+        'circle-stroke-color': 'white'
+    }
+});
+
+
+map.addSource('kingcounty', {
+    type: 'geojson',
+    data: kingcounty
+});
+
+map.addLayer({
+    'id': 'kingcounty-layer',
+    'type': 'fill',
+    'source': 'kingcounty',
+    'paint': {
+        'fill-color': '#0080ff', // Blue color fill
+        'fill-opacity': 0.5
+    }
+});
+
+});
+
+let row, cell1, cell2, cell3;
+    for (let i = 0; i < metrotransit.features.length; i++) {
+      row = table.insertRow(-1);
+      cell1 = row.insertCell(0);
+      cell2 = row.insertCell(1);
+      cell3 = row.insertCell(2);
+      cell1.innerHTML = metrotransit.features[i].properties.NAME;
+      cell2.innerHTML = metrotransit.features[i].properties.OBJECTID;
+      cell3.innerHTML = metrotransit.features[i].properties.ADDRESS;
+    }
+
+  };
+
+  geojsonFetch();
+
+  let btn = document.getElementsByTagName("button")[0];
+  btn.addEventListener('click', sortTable);
+
+  function sortTable(e) {
+    let table, rows, switching, i, x, y, shouldSwitch;
+    table = document.getElementsByTagName("table")[0];
+    switching = true;
+    while (switching) {
+      switching = false;
+      rows = table.rows;
+      for (i = 1; i < (rows.length - 1); i++) {
+        shouldSwitch = false;
+        x = parseFloat(rows[i].getElementsByTagName("td")[1].innerHTML);
+        y = parseFloat(rows[i + 1].getElementsByTagName("td")[1].innerHTML);
+        if (x < y) {
+          shouldSwitch = true;
+          break;
+        }
+      }
+      if (shouldSwitch) {
+        rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+        switching = true;
+      }
+    }
+  }
+
+
+
+</script>
+</body>
+</html>
